@@ -1,31 +1,18 @@
-data13 <- readLines("Input/day13.txt")
+data13 <- sapply(strsplit(readLines("Input/day13.txt"), "\\D+"), \(x) as.integer(x[-1]))
+x <- tapply(data13, cumsum(lengths(data13) == 0), \(y) do.call(c, y))
 
 
-a <- as.integer(gsub(".*X[\\+=](\\d+).*", "\\1", data13)[seq_along(data13) %% 4L != 0])
-b <- as.integer(gsub(".*Y[\\+=](\\d+).*", "\\1", data13)[seq_along(data13) %% 4L != 0])
-
-res <- 0
-for (k in 1:(length(a) / 3)) {
+slv <- function(a, addon = 0) {
+  a[5:6] <- a[5:6] + addon
   
-  x1 <- (a[k * 3 - 2]* b[k * 3] - a[k*3]* b[k * 3 - 2])  / (a[k * 3 - 2]* b[k * 3 - 1] - b[k * 3 - 2]* a[k * 3 - 1])
-  x2 <- (a[k*3]* b[k * 3 - 1] - b[k * 3]* a[k * 3 - 1])  / (a[k * 3 - 2]* b[k * 3 - 1] - b[k * 3 - 2]* a[k * 3 - 1])
+  res <- c(a[5] * a[4] - a[3] * a[6], a[1] * a[6] - a[5] * a[2]) / (a[1] * a[4] - a[2] * a[3])
   
-  if ((trunc(x1) == x1) && (trunc(x2) == x2)) res <- res + x1 + x2 * 3
-}
-res
-
-#part 2------
-a[seq_along(a) %% 3 == 0] <- a[seq_along(a) %% 3 == 0] + 1e13
-b[seq_along(a) %% 3 == 0] <- b[seq_along(a) %% 3 == 0] + 1e13
-
-res <- 0
-for (k in 1:(length(a) / 3)) {
-  
-  x1 <- (a[k * 3 - 2]* b[k * 3] - a[k*3]* b[k * 3 - 2])  / (a[k * 3 - 2]* b[k * 3 - 1] - b[k * 3 - 2]* a[k * 3 - 1])
-  x2 <- (a[k*3]* b[k * 3 - 1] - b[k * 3]* a[k * 3 - 1])  / (a[k * 3 - 2]* b[k * 3 - 1] - b[k * 3 - 2]* a[k * 3 - 1])
-  
-  if ((floor(x1) == x1) && (floor(x2) == x2)) res <- res + x1 + x2 * 3
+  if (identical(res, floor(res))) sum(res * c(3, 1)) else 0
 }
 
+# part 1---------
+sum(sapply(x, slv))
 
-sprintf("%.f", res)
+# part 2---------
+sprintf("%.f", sum(sapply(x, slv, addon = 1e13)))
+
