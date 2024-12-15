@@ -1,17 +1,9 @@
 x <- sapply(strsplit(readLines("Input/day14.txt"), "[, =]"), \(x) as.integer(x[c(-1, -4)]))
 
 res <- cbind((x[1,] + x[3,] * 100L) %% 101L, (x[2,] + x[4,] * 100L) %% 103L)
+q <- split(seq_along(x[1,]), (sign(res[,1] - 50)) + (sign(res[,2] - 51)) * 3)
 
-q <- ifelse(res[,1] < 50 & res[,2] < 51, 1, ifelse(
-  res[,1] < 50 & res[,2] > 51, 2, ifelse(
-    res[,1] > 50 & res[,2] < 51, 3, ifelse(
-      res[,1] > 50 & res[,2] > 51, 4, 0
-    )
-  )  
-)
-)
-
-prod(table(q[q!=0]))
+prod(lengths(q[c("-4", "-2", "2", "4")]))
 
 
 # part 2---------------
