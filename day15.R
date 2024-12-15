@@ -11,76 +11,67 @@ pos <- co[x == "@"]
 
 
 for (dir in dir_vec) {
-   new_pos <- pos + dir
-     if (!new_pos %in% wall) {
-         box2 <- if (Im(dir) == 0) box[Im(box) == Im(pos)] else box[Re(box) == Re(pos)]
-         if (new_pos %in% box2) {
-          n_box <- Position(\(k) !(pos + k * dir) %in% box2, 1:n) - 1L
-          if (!(pos + (n_box + 1L) * dir) %in% wall) {
-              mbox <- pos + seq_len(n_box) * dir #boxes to be moved
-              box[box %in% mbox] <- mbox + dir 
-              pos <- new_pos
-          }
-         }
-         else pos <- new_pos
-     }
+    new_pos <- pos + dir
+    if (!new_pos %in% wall) {
+        idx <- if (Im(dir) == 0) Im(box) == Im(pos) else Re(box) == Re(pos)
+        box2 <- box[idx]
+        if (new_pos %in% box2) {
+            n_box <- Position(\(p) !p %in% box2, pos + seq_len(n) * dir)
+            if (!(pos + n_box * dir) %in% wall) {
+                box[idx][box2 == new_pos] <- pos + n_box * dir # move box to the end 
+                pos <- new_pos
+            }
+        }
+        else pos <- new_pos
+    }
 }
 
 sum(100 * Im(box) + Re(box))
 
-
 #part 2---------
-update_tile <- function(x) {
-    gsub("#", "##", gsub("O", "[]", gsub("@", "@.", gsub("\\.", "..", x))))
-}
+update_tile <- \(x) gsub("#", "##", gsub("O", "[]", gsub("@", "@.", gsub("\\.", "..", x))))
 
 x <- as.character(do.call(rbind, strsplit(update_tile(data15[1:n]), "")))
 co <- rep(seq_len(2 * n) - 1, each = n) + rep((seq_len(n) - 1), 2 * n) * 1i
 wall <- co[x == "#"]
-box_l <- co[x == "["]
-box_r <- box_l + 1
-box <- c(box_l, box_r)
+box <- rbind(co[x == "["], co[x == "["] + 1)
 pos <- co[x == "@"]
 
 for (dir in dir_vec) {
     new_pos <- pos + dir
     if (!new_pos %in% wall) {
         if (Im(dir) == 0) { #left right
-            box2 <- box[Im(box) == Im(pos)]
+            idx <- Im(box) == Im(pos)
+            box2 <- matrix(box[idx], nrow = 2)
             if (new_pos %in% box2) {
-                n_box <- Position(\(k) !(pos + k * dir) %in% box2, 1:n) - 1L
-                if (!(pos + (n_box + 1L) * dir) %in% wall) {
-                    mbox <- pos + seq_len(n_box) * dir #boxes to be moved
-                    box_l[box_l %in% mbox] <- box_l[box_l %in% mbox] + dir
-                    box_r[box_r %in% mbox] <- box_r[box_r %in% mbox] + dir
-                    box <- c(box_l, box_r)
+                n_box <- Position(\(p) !p %in% box2, pos + (seq_len(n) * 2L - 1L) * dir)
+                if (!(pos + (n_box * 2L - 1L) * dir) %in% wall) {
+                    mbox <- pos + (if (dir == 1) seq_len((n_box - 1) * 2L) else seq.int((n_box - 1) * 2L, 1L))  * dir #boxes to be moved
+                    box[idx][box2 %in% mbox] <- mbox + dir
                     pos <- new_pos
                 }
             }
             else pos <- new_pos
         } else { # up down 
-            box2 <- box[Re(box) == Re(pos)]
-            if (new_pos %in% box2) {
-                mbox <- new_pos + c(0, if (new_pos %in% box_l) 1 else -1)
-                move <- TRUE
+            if (new_pos %in% box) {
+                mbox <- box[, colSums(new_pos == box) == 1]
                 n_box <- mbox
+                move <- TRUE
                 while(TRUE) {
                     if (any((n_box + dir) %in% wall)) {
                         move <- FALSE
                         break
                     }
-                    n_box <- box[box %in% (n_box + dir)]
-                    if (length(n_box) == 0) break
-                    n_box <- n_box[order(Re(n_box))]
-                    if (n_box[1] %in% box_r) {n_box <- c(n_box[1] - 1, n_box)}
-                    if (n_box[length(n_box)] %in% box_l) n_box <- c(n_box, n_box[length(n_box)] + 1)
+                    idx2 <- box %in% (n_box + dir) 
+                    
+                    if (!any(idx2)) break
+                    n_box <- box[, colSums(matrix(idx2, 2)) > 0]
+                    
                     mbox <- c(mbox, n_box)
                 }
                 
                 if (move) {
-                    box_l[box_l %in% mbox] <- box_l[box_l %in% mbox] + dir
-                    box_r[box_r %in% mbox] <- box_r[box_r %in% mbox] + dir
-                    box <- c(box_l, box_r)
+                    box[,box[1,] %in% mbox] <- mbox + dir
                     pos <- new_pos
                 }
                 
@@ -90,4 +81,4 @@ for (dir in dir_vec) {
     }
 }
 
-sum(100 * Im(box_l) + Re(box_r) - 1)
+sum(100 * Im(box[1, ]) + Re(box[1, ]))
