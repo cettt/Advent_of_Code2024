@@ -1,46 +1,46 @@
-n <- 141L
+x <- as.character(do.call(rbind, strsplit(readLines("Input/day16.txt"), "")))
+n <- as.integer(sqrt(length(x)))
 
-x <- as.character(as.matrix(read.fwf("Input/day16.txt", widths = rep(1, n), comment.char = "")))
-
-#1.n^2 E-W
-# n^2 + 1: 2 * n^2 NS
 co <- seq_len(2 * n^2)[c(x, x) != "#"]
 pos <- seq_along(x)[x == "S"]
-end <- seq_along(x)[x == "E"] + c(0, n^2)
+end <- seq_along(x)[x == "E"] + c(0L, n^2)
 
+tmp1 <- c(-n, n, c(1L, -1L) + n*n)
+tmp2 <- c(c(-n , n) - n*n, 1L,  -1L)
 
-k_idx <- function(k) {
-  if (! k %in% co) return(NULL)
-  if (k <= n^2) {
-    res <- k + c(if (k > n) - n, if (k <= n^2 - n) n , if (k %% n != 1) 1L + n^2, if (k %% n != 0) -1L + n^2)
-  } else {
-    k2 <- k - n^2
-    res <- k + c(if (k2 > n) - n - n^2, if (k2 <= n^2 - n) n - n^2 , if (k %% n != 1) 1L, if (k %% n != 0) -1L)
-  }
+find_ne <- function(k) {
   
-    res <- res[res %in% co]
+  res <- k + if (k <= n^2) tmp1 else tmp2 
+  res[res %in% co]
 }
 
-lookup <- lapply(seq_len(2 * n^2), k_idx)
-
 q <- collections::priority_queue(pos, priorities = 0L)
-dist <- rep.int(2L^30, 2*n^2)  #
-dist[pos] <- 0L
+score <- rep.int(1e9L, 2L*n^2) 
+pre <- vector("list", 2L * n^2)
+score[pos] <- 0L
 
 while (q$size() > 0) {
     cur <- q$pop()
-    cur_dist <- dist[cur]
-    for (ne in lookup[[cur]]) {
-      nd <- cur_dist + ifelse(abs(ne - cur) > 2L * n, 1001L, 1L)
-      if (dist[ne] > nd) {
-        dist[ne] <- nd
-        q$push(ne, priority = -nd)
+    cur_dist <- score[cur]
+    if (cur_dist >= min(score[end])) break
+    for (ne in find_ne(cur)) {
+      ns <- cur_dist + ifelse(abs(ne - cur) > 2L * n, 1001L, 1L)
+      if (score[ne] >= ns) {
+        pre[[ne]] <- c(cur, pre[[ne]])
+        if (score[ne] > ns) {
+          score[ne] <- ns
+          q$push(ne, priority = -ns)
+        }
       }
     }
-    if (any(lookup[[cur]] %in% end)) break
-  }
 }
 
+# part 1------------
+min(score[end])
 
-min(dist[end])
+# part 2----------
+path <- list(end[which.min(score[end])])
 
+while (any(path[[1]] != pos)) path <- c(list(unlist(pre[path[[1]]])), path)
+
+length(unique(unlist(path) %% n^2))
