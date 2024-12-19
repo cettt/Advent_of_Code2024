@@ -12,9 +12,8 @@ count_pat <- function(pat) {
   res[1] <- 1
   
   for (j in seq_len(nchar(pat))) {
-    twl_list2 <- twl_list[nc <= j]
-    for (i in seq_along(twl_list2)) {
-      if (any(substr(pat, j + 1L - nc[i], j) == twl_list2[[i]])) {
+    for (i in seq_len(sum(nc <= j))) {
+      if (any(substr(pat, j + 1L - nc[i], j) == twl_list[[i]])) {
         res[j + 1L] <- res[j + 1L] + res[j + 1 - nc[i]]
       }
     }
