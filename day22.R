@@ -1,56 +1,44 @@
-data22 <- read.table("Input/day22.txt")[,1]
+data22 <- read.table("Input/day22.txt")[, 1]
+pow2 <- as.integer(2^(0:23))
 
-int2bit <- function(x)  {
-  n <- floor(log(x, base = 2))
-  res <- seq_len(n + 1) 
+xbit <- sapply(data22, \(x) as.integer(intToBits(x))[1:24])
 
-  for (k in n:0) {
-    res[k + 1] <- if (x >= 2^k) 1L else 0L
-    x <- x - res[k + 1]*2^k 
-  }  
-  return(c(res, rep_len(0L, 23 - n)))
-}
+dig <- matrix(0L, nrow = 2001L, ncol = length(data22))
+dig[1, ] <- data22 %% 10L
 
-xbit <- sapply(data22, int2bit)
-
-dig <- matrix(0L, nrow = length(data22), ncol = 2001)
-dig[,1] <- data22 %% 10L
-k <- 2L
-
-evolve <- function(xbit) {
-  xbit[7:24, ] <- (xbit[7:24, ] + xbit[7:24 - 6, ]) %% 2L
-  xbit[1:19, ] <- (xbit[1:19, ] + xbit[1:19 + 5, ]) %% 2L 
-  xbit[12:24, ] <- (xbit[12:24, ] + xbit[12:24 - 11, ]) %% 2L
+for (k in 2:2001) {
+  xbit[7:24 , ] <- (xbit[7:24 , ] + xbit[1:18, ]) 
+  xbit[1:19 , ] <- (xbit[1:19 , ] + xbit[6:24, ])  
+  xbit[12:24, ] <- (xbit[12:24, ] + xbit[1:13, ])
+  xbit <- xbit %% 2L
   
-  dig[, k] <<- colSums(xbit * (2^(0:23))) %% 10L
-  k <<- k + 1L
-  return(xbit)
+  dig[k, ] <- as.integer(colSums((xbit * pow2)) %% 10L)
 }
+
 
 # part 1------------
-a <- Reduce(\(x, y) evolve(x), rep(list(xbit), 2001))
-sum(colSums(a * (2^(0:23))))
+sum(colSums(xbit * pow2))
 
 
 # part 2-------
 
-del <- apply(dig, 1, diff)
-res <- matrix(0, length(data22), 1997)
+del <- dig[-1, ] - dig[-2001, ] + 9L
+change <- matrix(0L, length(data22), 1997L)
+pow19 <- as.integer(19^(3:0))
 
-for (k in 1:1997) {
-  x <- del[0:3 + k, ]
-  res[, k] <- colSums(x * 19^(3:0))
-}
+for (k in 1:1997) change[, k] <- as.integer(colSums(del[0:3 + k, ] * pow19))
 
-tab <- sort(table(as.integer(res)), decreasing = TRUE)[1:250]
+tab <- sort(table(as.integer(change)), decreasing = TRUE)[1:250]
 
 uc <- as.integer(names(tab))
 
-res2 <- 0
+n_banana <- 0L
 for (y in uc) {
-  cl <- apply(res, 1, \(x) which(x == y)[1])
+  rw <- apply(change, 1, \(x) .Internal(which(x == y))[1])
+  n <- sum(diag(dig[rw + 4L, ]), na.rm = TRUE)
+  if (n > n_banana) print(y)
   
-  res2 <- max(res2, sum(diag(dig[,cl + 4]), na.rm = TRUE))
+  n_banana <- max(n_banana, n)
 }
 
-res2
+n_banana
