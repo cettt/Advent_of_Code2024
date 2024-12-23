@@ -1,44 +1,36 @@
 data22 <- read.table("Input/day22.txt")[, 1]
 pow2 <- as.integer(2^(0:23))
+pow19 <- as.integer(19^(3:0))
 
 xbit <- sapply(data22, \(x) as.integer(intToBits(x))[1:24])
 
 dig <- matrix(0L, nrow = 2001L, ncol = length(data22))
 dig[1, ] <- data22 %% 10L
+del <- matrix(0, nrow = 2000, ncol = length(data22))
+d_seq <- matrix(0, nrow = 1997, ncol = length(data22))
 
-for (k in 2:2001) {
-  xbit[7:24 , ] <- (xbit[7:24 , ] + xbit[1:18, ]) 
-  xbit[1:19 , ] <- (xbit[1:19 , ] + xbit[6:24, ])  
-  xbit[12:24, ] <- (xbit[12:24, ] + xbit[1:13, ])
+for (k in 1:2000) {
+  xbit[7:24 , ] <- xbit[7:24 , ] + xbit[1:18, ]
+  xbit[1:19 , ] <- xbit[1:19 , ] + xbit[6:24, ]
+  xbit[12:24, ] <- xbit[12:24, ] + xbit[1:13, ]
   xbit <- xbit %% 2L
-  
-  dig[k, ] <- as.integer(colSums((xbit * pow2)) %% 10L)
-}
 
+  dig[k + 1L, ] <- as.integer(colSums((xbit * pow2)) %% 10L)
+  del[k, ] <- dig[k + 1L, ] - dig[k, ]  + 9L
+  if (k >= 4) {
+    d_seq[k - 3L, ] <- colSums(del[k - 0:3, ] * pow19)
+  }
+}
 
 # part 1------------
 sum(colSums(xbit * pow2))
 
-
 # part 2-------
-
-del <- dig[-1, ] - dig[-2001, ] + 9L
-change <- matrix(0L, length(data22), 1997L)
-pow19 <- as.integer(19^(3:0))
-
-for (k in 1:1997) change[, k] <- as.integer(colSums(del[0:3 + k, ] * pow19))
-
-tab <- sort(table(as.integer(change)), decreasing = TRUE)[1:250]
-
-uc <- as.integer(names(tab))
-
-n_banana <- 0L
-for (y in uc) {
-  rw <- apply(change, 1, \(x) .Internal(which(x == y))[1])
-  n <- sum(diag(dig[rw + 4L, ]), na.rm = TRUE)
-  if (n > n_banana) print(y)
-  
-  n_banana <- max(n_banana, n)
+n_banana <- integer(19^5)
+for (k in seq_along(data22)) {
+  n_ban <- sapply(split(dig[-(1:4), k], d_seq[,k]), \(z) z[1])
+  nam <- as.integer(names(n_ban)) + 1L
+  n_banana[nam] <- n_banana[nam] + n_ban
 }
 
-n_banana
+max(n_banana)
