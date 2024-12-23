@@ -1,36 +1,38 @@
 data23 <- as.matrix(read.table("Input/day23.txt", sep = "-"))
 
-
-check3 <- function(k) {
-  x <- data23[k,]
+count_triple <- function(comp) {
   
-  y <- as.character(data23[data23[,1] %in% x | data23[,2] %in% x, ])
-  tab <- table(y)
-  if (any(tab == 2)) {
-    network <- lapply(names(tab[tab == 2]), \(z) c(x, z))
-    sum(sapply(network, \(z) any(grepl("^t", z))))
-  } else return(0L)
+  nxt <- as.character(data23[data23[,1] %in% comp | data23[,2] %in% comp, ])
+  tab <- split(nxt, nxt)
+  n_t <- pmin(3L, length(grep("^t", comp)) + grepl("^t", names(tab)) + 1L)
+  sum(ifelse(lengths(tab) == 2L, 1L, 0L) / n_t)
+  
 }
 
-
-sum(sapply(seq_along(data23[,1]), check3)) / 3
+# part 1-------
+t_rows <- data23[grepl("^t", data23[,1]) | grepl("^t", data23[,2]), ]
+sum(apply(t_rows, 1, count_triple))
 
 
 # part 2---------
-check_new <- function(cmp) {
-  nxt <- sort(unique(as.character(data23[data23[,1] == cmp | data23[,2] == cmp, ])))
+netw <- rbind(data23, data23[,2:1])
+find_cluster <- function(comp) {
+  nxt <- netw[netw[,1] == comp, 2L]
   
-  nxtnxt <- lapply(nxt, \(x) sort(unique(as.character(data23[data23[,1] == x | data23[,2] == x, ]))))
+  nxtnxt <- sapply(nxt, \(x) netw[netw[,1] %in% x, 2L])
   
-  tab <- table(unlist(nxtnxt))
-  tab <- tab[tab >= max(tab[names(tab) != cmp])]
-  
-  nxtnxt2 <- lapply(nxtnxt, \(x) x[x %in% names(tab)])
-  Reduce(intersect, nxtnxt2[lengths(nxtnxt2) > 1L])
+  res <- sapply(nxt, \(x) sum(colSums(nxtnxt == x)))
+  c(comp, names(res[res == max(res)]))
 }
 
 
-uc <- unique(as.character(data23))
-res <- lapply(uc, check_new)
+to_check <- unique(netw[, 1])
+cl_list <- list()
 
-paste0(sort(res[lengths(res) == max(lengths(res))][[1]]), collapse = ",")
+while (length(to_check > 1)) {
+  cl_list <- c(list(find_cluster(to_check[1])), cl_list)
+  to_check <- setdiff(to_check, cl_list[[1]])
+}
+
+paste0(sort(cl_list[[which.max(lengths(cl_list))]]), collapse = ",")
+
