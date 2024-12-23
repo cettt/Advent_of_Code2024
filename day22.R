@@ -14,9 +14,9 @@ for (k in 1:2000) {
   xbit[1:19 , ] <- xbit[1:19 , ] + xbit[6:24, ]
   xbit[12:24, ] <- xbit[12:24, ] + xbit[1:13, ]
   xbit <- xbit %% 2L
-
+  
   dig[k + 1L, ] <- as.integer(colSums((xbit * pow2)) %% 10L)
-  del[k, ] <- dig[k + 1L, ] - dig[k, ]  + 9L
+  del[k, ] <- dig[k + 1L, ] - dig[k, ] + 9L
   if (k >= 4) {
     d_seq[k - 3L, ] <- colSums(del[k - 0:3, ] * pow19)
   }
@@ -26,11 +26,11 @@ for (k in 1:2000) {
 sum(colSums(xbit * pow2))
 
 # part 2-------
+dig <- dig[-(1:4), ]
 n_banana <- integer(19^5)
 for (k in seq_along(data22)) {
-  n_ban <- sapply(split(dig[-(1:4), k], d_seq[,k]), \(z) z[1])
-  nam <- as.integer(names(n_ban)) + 1L
-  n_banana[nam] <- n_banana[nam] + n_ban
+  dup <- !duplicated(d_seq[, k])
+  n_banana[d_seq[dup, k] + 1L] <- n_banana[d_seq[dup, k] + 1L] + dig[dup, k]
 }
 
 max(n_banana)
