@@ -7,24 +7,20 @@ eq <- gsub("(.*) AND (.*) (-> .*)", "min(\\1, \\2) \\3", eq0)
 eq <- gsub("(.*) XOR (.*) (-> .*)", "(\\1 + \\2) %% 2L \\3", eq)
 eq <- gsub("(.*) OR (.*) (-> .*)",  "max(\\1, \\2) \\3", eq)
 
-for (v in val) {
-  evl <- eval(parse(text = sub(":", "<-", v)))
-  eq <- gsub(substr(v, 1, 3), evl, eq)
-}
-
+for (v in val) eq <- gsub(substr(v, 1, 3), substr(v, 6, 6), eq)
 
 check <- grep("\\(\\d.*\\d\\)", eq)
 
 while (length(check) > 0) {
   for (k in check) {
     var <- gsub(".* -> ", "", eq[k])
-    evl <- eval(parse(text = sub(":", "<-", eq[k])))
+    prs <- if (!grepl("^z\\d{2}", var)) sub(" ->.*", "", eq[k]) else eq[k]
+    evl <- eval(parse(text = prs))
     eq <- gsub(var, evl, eq)
   }
   eq <- eq[-check]
   check <- grep("\\(\\d.*\\d\\)", eq)
 }
-
 
 res <- sapply(ls(pattern = "^z"), get)
 
@@ -51,6 +47,7 @@ for (n in sub("z", "", res_z)) {
   res_z_cor <- c(res_z_cor, get_val(tmp2))
 }
 
+ 
 for (k in seq_along(res_z)) {
   eq0 <- gsub(paste0(res_z[k], "$"), paste0(res_z_cor[k], "999"), eq0)
   eq0 <- gsub(paste0(res_z_cor[k], "$"), res_z[k], eq0)
@@ -78,3 +75,29 @@ res_xy2 <- get_val(grep("AND", sapply(res, \(z) z[4]), value = TRUE, invert = TR
 
 
 paste0(sort(c(res_z, res_z_cor, res_xy, res_xy2)), collapse = ",")
+
+
+# explanation------
+# starting with the second bit (z02) each bit is constructed using the following five instructions:
+# aaa XOR bbb -> z02
+#   y02 XOR x02 -> aaa
+#   ccc OR  ddd -> bbb
+#     y01 AND x01 -> ccc
+#     eee AND fff -> ddd  
+#
+# and they continue in the same fashion
+#
+# ggg XOR hhh -> z03
+#   y02 XOR x02 -> ggg
+#   iii OR  jjj -> hhh
+#     y02 AND x02 -> iii
+#     aaa AND bbb -> jjj  
+#
+# note that aaa and bbb appear both  for z02 and z03!
+#
+# this code checks the instructions for this structure:
+#   res_z checks whether instructions which assign something on z contain XOR
+#   res_z_cor are the corrected gates
+# 
+#  the list res then collects all instructions for each individual bit.
+#    each component should contain five instructions in the same sequence as above
