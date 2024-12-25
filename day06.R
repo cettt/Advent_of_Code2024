@@ -1,9 +1,9 @@
-x <- as.character(do.call(rbind, strsplit(readLines("Input/day06.txt"), "")))
-n <- as.integer(sqrt(length(x)))
+data06 <- as.character(do.call(rbind, strsplit(readLines("Input/day06.txt"), "")))
+n <- as.integer(sqrt(length(data06)))
 rw <- rep.int(seq_len(n), n)
 cl <- rep(seq_len(n), each = n)
 
-obs <- which(x == "#")
+obs <- which(data06 == "#")
 obs_rw <- split(obs, rw[obs])
 obs_cl <- split(obs, cl[obs])
 
@@ -24,52 +24,48 @@ idx_k <- function(k) {
 
 lookup <- sapply(seq_len(n^2), idx_k)
 
-pos <- which(x == "^")
+pos <- which(data06 == "^")
 path <- pos
 
-k <- 1L
+dir_counter <- 1L
 while (TRUE) {
-  pos <- c(lookup[k, pos[1]], pos)
+  pos <- c(lookup[dir_counter, pos[1]], pos)
   if (pos[1] == -1 || pos[1] == 1e5)  break
-  path <- c(path, seq(pos[2], pos[1], by = dir_vec[k])[-1])
-  k <- k %% 4L + 1L
+  path <- c(path, seq(pos[2], pos[1], by = dir_vec[dir_counter])[-1])
+  dir_counter <- dir_counter %% 4L + 1L
 }
 
 # finish path
-pos2 <- arrayInd(pos[2], c(n, n))
-lng <- if (k == 1) pos2[1] else if (k == 3) 131 - pos2[1] else if (k == 2) pos2[2] else 131 - pos2[2]
-final_path <- seq(pos[2], length.out = lng, by = dir_vec[k])[-1]
+rwcl <- if (abs(dir_vec[dir_counter]) == 1) rw[pos[2]] else cl[pos[2]]
+lng <- if (dir_vec[dir_counter] > 0) 131L - rwcl else rwcl - 1L
+final_path <- seq(pos[2], length.out = lng, by = dir_vec[dir_counter])[-1]
 path <- c(path, final_path)
 length(unique(path))
 
 # part 2-------------
 
-## update lookup-----
-update_lookup <- function(k) {
-  
-  left  <- which(rw == rw[k] & cl > cl[k])
-  right <- which(rw == rw[k] & cl < cl[k])
-  up    <- which(cl == cl[k] & rw > rw[k]) 
-  down  <- which(cl == cl[k] & rw < rw[k]) 
-  lookup_new <- lookup
-  lookup_new[4, left]  <- pmax.int(lookup[4, left], k + n)
-  lookup_new[2, right] <- pmin.int(lookup[2, right], k - n)
-  lookup_new[1, up]    <- pmax.int(lookup[1, up], k + 1L)
-  lookup_new[3, down]  <- pmin.int(lookup[3, down], k - 1L)
-  
-  return(lookup_new)  
-}
-
-
 check_loop <- function(pos0, dir0) {
-  lookup2 <- update_lookup(pos0 + dir0)
-  k <- which(dir_vec == dir0)
+  
+  new_obs <- pos0 + dir0
+  rw_new <- rw[new_obs] 
+  cl_new <- cl[new_obs] 
+  
+  left  <- .Internal(which(rw == rw_new & cl > cl_new))
+  right <- .Internal(which(rw == rw_new & cl < cl_new))
+  up    <- .Internal(which(cl == cl_new & rw > rw_new)) 
+  down  <- .Internal(which(cl == cl_new & rw < rw_new)) 
+  lookup[1, up]    <- pmax.int(lookup[1, up], new_obs + 1L)
+  lookup[2, right] <- pmin.int(lookup[2, right], new_obs - n)
+  lookup[3, down]  <- pmin.int(lookup[3, down], new_obs - 1L)
+  lookup[4, left]  <- pmax.int(lookup[4, left], new_obs + n)
+  
+  dir_counter <- which(dir_vec == dir0) %% 4L + 1L
   
   while (TRUE) {
-    pos0 <- c(lookup2[k, pos0[1]], pos0)
-    if (pos0[1] == -1 || pos0[1] == 1e5)  return(0)
-    if (sum(pos0 == pos0[1]) > 3L) return(1)
-    k <- k %% 4L + 1L
+    pos0 <- c(lookup[dir_counter, pos0[1]], pos0)
+    if (pos0[1] == -1 || pos0[1] == 1e5)  return(0L)
+    if (sum(pos0 == pos0[1]) > 3L) return(1L)
+    dir_counter <- dir_counter %% 4L + 1L
   }
 }
 
